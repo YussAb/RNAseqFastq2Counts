@@ -20,6 +20,7 @@ outputPath = opt$outputPath
 
 
 ##########################STEP1#################################################
+print("Reading Tables...")
 #leggere una lista di csv
 #https://stackoverflow.com/questions/11433432/how-to-import-multiple-csv-files-at-once
 #folder = "~/yussab/filterGenesVCF/03_snpeff"
@@ -32,10 +33,15 @@ suppressMessages(library(data.table))
 setDTthreads(32)
 myfiles <- setNames(lapply(temp, data.table::fread), tools::file_path_sans_ext(basename(temp)))
 
+
 ##########################STEP2#################################################
 #fare rbind della lista in un file unico
-library(purrr)
+print("Merging Tables...")
+suppressMessages(library(dplyr))
+suppressMessages(library(purrr))
 myfiles <- myfiles[sapply(myfiles, nrow)>0]
 df <- myfiles  %>% reduce(left_join, by = "Geneid")
- 
+
+print("Writing Table...")
 write.table(df, file = outputPath , sep="\t", row.names = FALSE, quote = FALSE)
+print("DONE!")
