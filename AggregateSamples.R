@@ -5,8 +5,8 @@
 suppressMessages(library(optparse))
 
 # Parameters
-option_list = list(optparse::make_option(c("-f", "--folder"), type = "character", default = F, help = "...", metavar = ""),
-                   optparse::make_option(c("-o", "--outputPath"), type = "character",  default = F , help = "...", metavar = ""))
+option_list = list(optparse::make_option(c("-f", "--folder"), type = "character", default = F, help = "folder containing the file generated with feautureCounts *counts_matrix", metavar = ""),
+                   optparse::make_option(c("-o", "--outputPath"), type = "character",  default = F , help = "output file path", metavar = ""))
 
 opt_parser = optparse::OptionParser(option_list = option_list)
 opt = optparse::parse_args(opt_parser)
