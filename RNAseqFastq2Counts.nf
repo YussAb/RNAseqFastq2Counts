@@ -18,12 +18,21 @@ yabili/rnaseq_fastq_to_counts:
 def helpMessage() {
     log.info"""
     The typical command for running the pipeline is as follows:
-    nextflow RNAseqFastq2Counts.nf --reads /homenfs/yabili/giab/fastq/*_R{1,2}_*.fastq.gz --build_star_genome  -with-report report.html
+    nextflow RNAseqFastq2Counts.nf --fastq "path/to/fastq/fastq/*_R{1,2}_*.fastq.gz" \
+                                   --genome path/to/ref.fa \
+                                   --annotation path/to/annotation.gtf \
+                                   --build_star_genome  \
+                                   -with-report report.html
     
-    Mandatory arguments:
-    --[DEV]
-    --[DEV]
+    Options:
+    * --fastq        [help = path to fastq files to parse to counts ]
+    * --genome       [help = path to reference genome.fa ]
+    * --annotation   [help = path to annotation.gtf ]
+    * --star_genome  [help = path to folder with STAR reference genome]
 
+    If no STAR genome is has already built use this option
+    * --build_star_genome  [help = optional to indicate to build STAR reference genome  ]
+    
    """.stripIndent()    
 }
 
@@ -51,10 +60,10 @@ if (params.help) exit 0, helpMessage()
 */
 //input_list//
 // Required Parameters
-//params.reads = "/homenfs/yabili/giab/fastq/*_R{1,2}_*.fastq.gz"
+//params.fastq = "/homenfs/yabili/giab/fastq/*_R{1,2}_*.fastq.gz"
 //params.genome = "/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/reference_data/chr1.fa"
 //params.annotation="/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/reference_data/chr1-hg19_genes.gtf"
-//params.reads = "/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/raw_fastq/*.fq*"
+//params.fastq = "/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/raw_fastq/*.fq*"
 
 //Set Flags//
 params.build_star_genome = false
@@ -68,22 +77,22 @@ if( !ref_annotation.exists() ) exit 1, "Missing annotation file: ${ref_annotatio
 if( !ref_genome.exists() ) exit 1, "Missing genome directory: ${ref_genome}"
 
 // Print some stuff here
-println "reads: $params.reads"
+println "reads: $params.fastq"
 
 //Create a channel for read files// 
-Channel.fromFilePairs(params.reads, checkIfExists:true, size: -1) // default is 2, so set to -1 to allow any number of files
-    .ifEmpty { error "Can not find any reads matching ${reads}" }
-    .into{ reads_ch; reads_ch2 }
+Channel.fromFilePairs(params.fastq, checkIfExists:true, size: -1) // default is 2, so set to -1 to allow any number of files
+    .ifEmpty { error "Can not find any fastq matching ${fastq}" }
+    .into{ fastq_ch; fastq_ch2 }
 
 
 /*
 --------------------------------------------------------------------------------
 */
 process fastqc {    
-    publishDir "${params.outdir}/fastqc", mode: 'copy', overwrite: false
+    publishDir "${params.outdir}/01_fastqc", mode: 'copy', overwrite: false
     
     input:
-    set val(sample), file(fastq) from reads_ch
+    set val(sample), file(fastq) from fastq_ch
     
     output:
     file("${fastq.simpleName}_fastqc/*.zip") into fastqc_files
@@ -98,7 +107,7 @@ process fastqc {
 
 
 process runMultiQC {
-    publishDir "${params.outdir}/multiqc", mode: 'copy', overwrite: false
+    publishDir "${params.outdir}/01_multiqc", mode: 'copy', overwrite: false
 
     input:
     file('*') from fastqc_files.collect()
@@ -113,7 +122,7 @@ process runMultiQC {
 
 if (params.build_star_genome) { 
     process STAR_genome_index {
-    publishDir "${params.outdir}/star_index", mode: 'copy'
+    publishDir "${params.outdir}/00_star_index", mode: 'copy'
 
     input:
     file ref_genome
@@ -135,7 +144,7 @@ if (params.build_star_genome) {
     """
     }
 } else {
-    params.star_genome="/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/star_index/STARgenome"
+    params.star_genome=""
     Channel.fromPath(params.star_genome, checkIfExists:true)
         .ifEmpty ("STAR index need to be built")
         .set{ STARgenomeIndex_ch }
@@ -144,12 +153,12 @@ if (params.build_star_genome) {
 
 process STAR_aligment {
     
-    tag "reads: $sample"
-    publishDir "${params.outdir}/star_mapped", mode: 'copy'
+    tag "fastq: $sample"
+    publishDir "${params.outdir}/02_star_mapped", mode: 'copy'
 
     input:
     file STARgenome from STARgenomeIndex_ch.first()
-    set val(sample), file(fastq) from reads_ch2
+    set val(sample), file(fastq) from fastq_ch2
 
     output:
      set val(fastq.simpleName),file("STAR_${fastq.simpleName}") into STARmappedReads_ch, STARmappedReadsQualimap_ch
@@ -184,7 +193,7 @@ process STAR_aligment {
 }
 
 process Qualimap {
-    publishDir "${params.outdir}/qualimap", mode: 'copy'
+    publishDir "${params.outdir}/03_qualimap", mode: 'copy'
 
     input:    
     set val(sample), file(STAR_alignment) from STARmappedReadsQualimap_ch
@@ -208,7 +217,7 @@ process Qualimap {
 
 process FeautureCounts {
 
-    publishDir "${params.outdir}/feauture_counts", mode: 'copy'
+    publishDir "${params.outdir}/04_feauture_counts", mode: 'copy'
 
     input:
     set val(sample), file(STAR_alignment) from STARmappedReads_ch
@@ -229,9 +238,11 @@ process FeautureCounts {
 }
 
 //Aggiungere una flag per aggregare i dati
-/*
+featurecounts_ch.view()
 
-if (params.build_star_genome) { 
+
+/*
+if (params.aggregate_counts) { 
 process AggregateCounts {
     
 
