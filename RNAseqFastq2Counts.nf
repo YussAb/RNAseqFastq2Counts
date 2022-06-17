@@ -38,6 +38,7 @@ def helpMessage() {
 
 if (params.help) exit 0, helpMessage()
 
+//Future Development to provide input tsv
 //params.input_tsv=''
 //Channel
 //    .fromPath(params.input_tsv)
@@ -47,7 +48,7 @@ if (params.help) exit 0, helpMessage()
 //samples_ch.into {samples_ch1; samples_ch2; samples_ch3; samples_ch4 }
 
 
-//Documentation//
+//Dev//Documentation//
 //REF:https://github.com/evanfloden/lncRNA-Annotation-nf/blob/master/lncRNA-Annotation.nf
 //REF:https://github.com/angelovangel/nxf-fastqc/blob/master/main.nf
 //REF:Conditional process executions
@@ -58,8 +59,8 @@ if (params.help) exit 0, helpMessage()
 /*
 --------------------------------------------------------------------------------
 */
-//input_list//
-// Required Parameters
+//debug_input_list//
+//Required Parameters
 //params.fastq = "/homenfs/yabili/giab/fastq/*_R{1,2}_*.fastq.gz"
 //params.genome = "/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/reference_data/chr1.fa"
 //params.annotation="/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/reference_data/chr1-hg19_genes.gtf"
@@ -82,13 +83,17 @@ println "reads: $params.fastq"
 //Create a channel for read files// 
 Channel.fromFilePairs(params.fastq, checkIfExists:true, size: -1) // default is 2, so set to -1 to allow any number of files
     .ifEmpty { error "Can not find any fastq matching ${fastq}" }
-    .into{ fastq_ch; fastq_ch2 }
+    .into{ fastq_ch; fastq_ch2; fastq_ch3 }
+
+//fastq_ch3.view()
 
 
 /*
 --------------------------------------------------------------------------------
 */
+
 process fastqc {    
+    maxForks 4
     publishDir "${params.outdir}/01_fastqc", mode: 'copy', overwrite: false
     
     input:
@@ -100,9 +105,8 @@ process fastqc {
     script:
     """
     mkdir ${fastq.simpleName}_fastqc
-    fastqc -o ${fastq.simpleName}_fastqc -t 4 ${fastq}
+    fastqc -o ${fastq.simpleName}_fastqc -t 6 ${fastq}
     """
-
 }
 
 
@@ -139,7 +143,7 @@ if (params.build_star_genome) {
     --genomeDir STARgenome \
     --genomeFastaFiles ${ref_genome} \
     --sjdbGTFfile ${ref_annotation} \
-    --runThreadN 6 \
+    --runThreadN 16 \
     --outFileNamePrefix STARgenome 
     """
     }
@@ -149,10 +153,9 @@ if (params.build_star_genome) {
         .ifEmpty ("STAR index need to be built")
         .set{ STARgenomeIndex_ch }
 }
-
-
 process STAR_aligment {
-    
+    maxForks 2
+ 
     tag "fastq: $sample"
     publishDir "${params.outdir}/02_star_mapped", mode: 'copy'
 
@@ -169,7 +172,7 @@ process STAR_aligment {
     STAR --genomeDir ${STARgenome} \
          --readFilesIn ${fastq} \
          --outFileNamePrefix ${fastq.simpleName} \
-         --genomeLoad NoSharedMemory \
+         --genomeLoad LoadAndKeep \
          --runThreadN 4 \
          --readFilesCommand zcat \
          --outSAMtype BAM Unsorted \
@@ -179,7 +182,8 @@ process STAR_aligment {
          --outFilterMultimapScoreRange 1 \
          --outFilterMismatchNmax 999 \
          --outFilterMismatchNoverLmax 0.04
-    
+
+    #--genomeLoad NoSharedMemory
     samtools sort ${fastq.simpleName}Aligned.out.bam > ${fastq.simpleName}Aligned_sortedByCoord.out.bam
     samtools index ${fastq.simpleName}Aligned_sortedByCoord.out.bam
     rm ${fastq.simpleName}Aligned.out.bam 
@@ -192,7 +196,9 @@ process STAR_aligment {
     """ 
 }
 
+
 process Qualimap {
+    maxForks 4
     publishDir "${params.outdir}/03_qualimap", mode: 'copy'
 
     input:    
@@ -207,7 +213,7 @@ process Qualimap {
     -outdir ${sample}_qm \
     -bam  ${STAR_alignment}/${sample}*.bam \
     -gtf ${ref_annotation} \
-    --java-mem-size=8G
+    --java-mem-size=8G 
     """
 
 }
@@ -216,6 +222,7 @@ process Qualimap {
 //STARmappedReads_ch.view()
 
 process FeautureCounts {
+    maxForks 8
 
     publishDir "${params.outdir}/04_feauture_counts", mode: 'copy'
 
@@ -238,14 +245,12 @@ process FeautureCounts {
 }
 
 //Aggiungere una flag per aggregare i dati
-featurecounts_ch.view()
+//featurecounts_ch.view()
 
 
 /*
 if (params.aggregate_counts) { 
 process AggregateCounts {
-    
-
     }
 }
 */
