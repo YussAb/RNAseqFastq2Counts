@@ -255,3 +255,21 @@ process AggregateCounts {
 }
 */
 
+/*
+process geneBodyCov {
+
+    publishDir "${params.outdir}/05_gene_body_cov", mode: 'copy'
+
+
+    input:
+    set val(), file() from *_ch
+
+    output:
+    set val(), file("${sample}_counts"), file("${sample}_counts_matrix") into featurecounts_ch
+ 
+    script:
+    """
+    geneBody_coverage.py -r hg19.HouseKeepingGenes.bed -i bam_path.txt | bam1,bam2  -o output_prefix
+    """
+}
+*/
