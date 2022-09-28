@@ -38,6 +38,8 @@ def helpMessage() {
 
 if (params.help) exit 0, helpMessage()
 
+
+////////////////////////DEV/////////////////////////////////////////////
 //Future Development to provide input tsv
 //params.input_tsv=''
 //Channel
@@ -47,7 +49,6 @@ if (params.help) exit 0, helpMessage()
 //    .set { samples_ch }
 //samples_ch.into {samples_ch1; samples_ch2; samples_ch3; samples_ch4 }
 
-
 //Dev//Documentation//
 //REF:https://github.com/evanfloden/lncRNA-Annotation-nf/blob/master/lncRNA-Annotation.nf
 //REF:https://github.com/angelovangel/nxf-fastqc/blob/master/main.nf
@@ -56,15 +57,16 @@ if (params.help) exit 0, helpMessage()
 //REF:Optional input
 //https://github.com/nextflow-io/patterns/blob/master/docs/optional-input.adoc
 
+//debug_input_list//
+//Required Parameters
+//params.fastq = ""
+//params.genome = ""
+//params.annotation=""
+///////////////////////////////////////////////////////////////////////
+
 /*
 --------------------------------------------------------------------------------
 */
-//debug_input_list//
-//Required Parameters
-//params.fastq = "/homenfs/yabili/giab/fastq/*_R{1,2}_*.fastq.gz"
-//params.genome = "/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/reference_data/chr1.fa"
-//params.annotation="/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/reference_data/chr1-hg19_genes.gtf"
-//params.fastq = "/home/youssef/CANDIOLO_IRCCS/rnaseq/yabiliPipe/01_RNAseqFastq2Counts/Intro-to-rnaseq-hpc-O2/unix_lesson/raw_fastq/*.fq*"
 
 //Set Flags//
 params.build_star_genome = false
@@ -93,8 +95,10 @@ Channel.fromFilePairs(params.fastq, checkIfExists:true, size: -1) // default is 
 */
 
 process fastqc {    
+
     maxForks 4
-    publishDir "${params.outdir}/01_fastqc", mode: 'copy', overwrite: false
+
+    publishDir "${params.outdir}/QC/01_fastqc", mode: 'copy', overwrite: false
     
     input:
     set val(sample), file(fastq) from fastq_ch
@@ -104,23 +108,8 @@ process fastqc {
 
     script:
     """
-    mkdir ${fastq.simpleName}_fastqc
+    mkdir -p  ${fastq.simpleName}_fastqc
     fastqc -o ${fastq.simpleName}_fastqc -t 6 ${fastq}
-    """
-}
-
-
-process runMultiQC {
-    publishDir "${params.outdir}/01_multiqc", mode: 'copy', overwrite: false
-
-    input:
-    file('*') from fastqc_files.collect()
-
-    output:
-    file('multiqc_report.html')
-
-    """
-    multiqc .
     """
 }
 
@@ -154,10 +143,10 @@ if (params.build_star_genome) {
         .set{ STARgenomeIndex_ch }
 }
 process STAR_aligment {
-    maxForks 2
+    maxForks 4 
  
     tag "fastq: $sample"
-    publishDir "${params.outdir}/02_star_mapped", mode: 'copy'
+    publishDir "${params.outdir}/01_star_mapped", mode: 'copy'
 
     input:
     file STARgenome from STARgenomeIndex_ch.first()
@@ -172,7 +161,7 @@ process STAR_aligment {
     STAR --genomeDir ${STARgenome} \
          --readFilesIn ${fastq} \
          --outFileNamePrefix ${fastq.simpleName} \
-         --genomeLoad LoadAndKeep \
+         --genomeLoad LoadAndRemove \
          --runThreadN 4 \
          --readFilesCommand zcat \
          --outSAMtype BAM Unsorted \
@@ -196,10 +185,11 @@ process STAR_aligment {
     """ 
 }
 
-
 process Qualimap {
+
     maxForks 4
-    publishDir "${params.outdir}/03_qualimap", mode: 'copy'
+
+    publishDir "${params.outdir}/QC/02_bam_qualimap", mode: 'copy'
 
     input:    
     set val(sample), file(STAR_alignment) from STARmappedReadsQualimap_ch
@@ -211,34 +201,53 @@ process Qualimap {
     """
     qualimap rnaseq \
     -outdir ${sample}_qm \
-    -bam  ${STAR_alignment}/${sample}*.bam \
-    -gtf ${ref_annotation} \
+    -bam    ${STAR_alignment}/${sample}*.bam \
+    -gtf    ${ref_annotation} \
+    -p      ${params.standness_qualimap} \
     --java-mem-size=8G 
     """
-
 }
 
+process split_bam {
+
+    publishDir "${params.outdir}/02_splitBAM", mode:'copy'
+
+    input:
+    set val(sample), file(STAR_alignment) from STARmappedReads_ch
+   
+    output:
+    set val(sample), file("${sample}.ribo.in.bam"), file("${sample}.ribo.ex.bam") , file("${sample}.ribo.junk.bam") , file("${sample}.ribo.ex.bam.summary") into split_bam_ch
+
+    script:
+    """
+    split_bam.py -i ${STAR_alignment}/${sample}*.bam \
+        -r ${params.ribo_bed} \
+        -o ${sample}.ribo \
+        >  ${sample}.ribo.ex.bam.summary
+    """
+}
 
 //STARmappedReads_ch.view()
 
 process FeautureCounts {
     maxForks 8
 
-    publishDir "${params.outdir}/04_feauture_counts", mode: 'copy'
+    publishDir "${params.outdir}/03_feauture_counts", mode: 'copy'
 
     input:
-    set val(sample), file(STAR_alignment) from STARmappedReads_ch
-
-    output:
-    set val(sample), file("${sample}_counts"), file("${sample}_counts_matrix") into featurecounts_ch
+    set val(sample), ribo_in, ribo_ex, ribo_junk, ribo_summary from split_bam_ch
     
+    output:
+    set val(sample), file("${sample}_counts"), file("${sample}_counts_matrix"), file("${sample}_counts.summary") into featurecounts_ch
+ 
     script:
     """
-    #mkdir featurecounts_${sample}
-    featureCounts -s 2 -T 4  \
+   featureCounts -T 4 -t gene \
               -o ${sample}_counts  \
               -a ${ref_annotation} \
-              ${STAR_alignment}/${sample}*.bam
+              -s ${params.strandness_featurecounts} \
+              ${ribo_ex}
+
 
     cut -f1,7,8,9,10,11,12 ${sample}_counts >  ${sample}_counts_matrix
     """
@@ -246,8 +255,6 @@ process FeautureCounts {
 
 //Aggiungere una flag per aggregare i dati
 //featurecounts_ch.view()
-
-
 /*
 if (params.aggregate_counts) { 
 process AggregateCounts {
@@ -255,21 +262,3 @@ process AggregateCounts {
 }
 */
 
-/*
-process geneBodyCov {
-
-    publishDir "${params.outdir}/05_gene_body_cov", mode: 'copy'
-
-
-    input:
-    set val(), file() from *_ch
-
-    output:
-    set val(), file("${sample}_counts"), file("${sample}_counts_matrix") into featurecounts_ch
- 
-    script:
-    """
-    geneBody_coverage.py -r hg19.HouseKeepingGenes.bed -i bam_path.txt | bam1,bam2  -o output_prefix
-    """
-}
-*/
