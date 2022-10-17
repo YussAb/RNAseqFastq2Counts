@@ -143,7 +143,7 @@ if (params.build_star_genome) {
         .set{ STARgenomeIndex_ch }
 }
 process STAR_aligment {
-    maxForks 4 
+    maxForks 2 
  
     tag "fastq: $sample"
     publishDir "${params.outdir}/01_star_mapped", mode: 'copy'
@@ -261,4 +261,26 @@ process AggregateCounts {
     }
 }
 */
+
+
+process normalize_counts {
+
+    maxForks 8
+
+    publishDir "${params.outdir}/04_normalized_counts", mode: 'copy'
+
+    input:
+    set val(sample), counts, counts_matrix, counts_summary from featurecounts_ch
+    
+    output:
+    set val(sample), file("${sample}_rpkm.txt"), file("${sample}_tpm.txt") into normalizedcounts_ch 
+   
+    script:
+    """
+    Rscript $PWD/resources/rpkm_tpm_script.R ${counts} ${sample}
+    """
+
+}
+
+normalizedcounts_ch.view()
 
