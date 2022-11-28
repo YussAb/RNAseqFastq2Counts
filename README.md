@@ -1,9 +1,18 @@
-# RNAseq from fatsq to counts
+# RNAseq from fatsq to counts 
 
 Nextflow script to generate counts starting from fastq files.
-Allow analysis of multiple samples at the same time
+Allow analysis of multiple samples at the same time on different platforms.
 
-## RNAseqFastq2Counts.nf
+This pipeline is implemented using **DSL2** from **Nextflow**.
+In this repo you can find modules and workflows that you can use as wanted to create a new personalized workflow.
+
+## Usage
+
+Example:
+
+```bash
+nextflow main.nf --fastq "path/to/fastq"  --genome "path/to/ref.fa" --annotation "path/to/annotation.gtf" --star_genome "path/to/starGenome/dir" -with-report report.html
+```
 
 Options:
 * --fastq        [help = path to fastq files to parse to counts ]
@@ -15,20 +24,4 @@ If no STAR genome is has already built use this option
 * --build_star_genome  [help = optional to indicate to build STAR reference genome  ]
 
 
-Example:
 
-```bash
-nextflow RNAseqFastq2Counts.nf --fastq "path/to/fastq"  --genome "path/to/ref.fa" --annotation "path/to/annotation.gtf" --star_genome "path/to/starGenome/dir" -with-report report.html
-```
-
-## AggregateSamples.R
-
-Options:
-* -f , --folder     [help = folder containing the file generated with feautureCounts *counts_matrix ]
-* -o , --outputPath [help = output file path] 
-
-Example:
-```bash
-Rscript AggregateSamples.R --folder results/04_feauture_counts  --outputPath test.csv
-```  
- 
