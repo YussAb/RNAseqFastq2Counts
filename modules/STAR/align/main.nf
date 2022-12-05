@@ -1,36 +1,10 @@
-process STAR_genome_index {
-    publishDir "${params.outdir}/00_star_index", mode: 'copy'
-
-    input:
-    file(ref_genome)
-    file(ref_annotation)
-
-    output:
-    file("STARgenome")
-
-    script:
-    //STAR Generate Index and create genome length file
-    """
-    mkdir STARgenome
-    STAR --runMode genomeGenerate \
-    --genomeDir STARgenome \
-    --genomeFastaFiles ${ref_genome} \
-    --sjdbGTFfile ${ref_annotation} \
-    --runThreadN 16 \
-    --outFileNamePrefix STARgenome 
-    """
-    }
-
-
 process STAR_aligment {
-    maxForks 2
- 
+    
     tag "fastq: $sample"
     publishDir "${params.outdir}/01_star_mapped", mode: 'copy'
 
     input:
-    tuple val(sample), file(fastq) 
-    file STARgenome 
+    tuple val(sample), file(fastq) ,file(STARgenome )
 
     output:
     tuple val(fastq.simpleName),file("STAR_${fastq.simpleName}")
@@ -64,6 +38,3 @@ process STAR_aligment {
     mv ${fastq.simpleName}Log* STAR_${fastq.simpleName}/.
     """ 
 }
-
-
-
