@@ -5,7 +5,7 @@
 suppressMessages(library(optparse))
 
 # Parameters
-option_list = list(optparse::make_option(c("-f", "--folder"), type = "character", default = F, help = "folder containing the file generated with feautureCounts *counts_matrix", metavar = ""),
+option_list = list(optparse::make_option(c("-f", "--folder"), type = "character", default = F, help = "folder containing the file rpkm", metavar = ""),
                    optparse::make_option(c("-o", "--outputPath"), type = "character",  default = F , help = "output file path", metavar = ""))
 
 opt_parser = optparse::OptionParser(option_list = option_list)
@@ -15,8 +15,8 @@ outputPath = opt$outputPath
 
 ################################################################################
 #DEBUG
-folder="/home/youssef/CANDIOLO_IRCCS/xpo1/xpo1_rna/RNAseqFastq2Counts/04_normalized_counts/"
-outputPath="/home/youssef/CANDIOLO_IRCCS/xpo1/xpo1_rna/RNAseqFastq2Counts/04_normalized_counts/xpo1_rpkm.tsv"
+#folder="/data/yabili/RNAseqFastq2Counts/xpo1_3rd_run_seq/04_normalized_counts"
+#outputPath="/data/yabili/RNAseqFastq2Counts/xpo1_3rd_run_seq/04_normalized_counts/xpo1_3rd_rpkm.tsv"
 
 
 ##########################STEP1#################################################

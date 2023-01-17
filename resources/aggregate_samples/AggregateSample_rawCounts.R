@@ -2,7 +2,7 @@
 
 ##########################Inputs################################################
 # Load libraries
-suppressMessages(library(optparse))
+library(optparse)
 
 # Parameters
 option_list = list(optparse::make_option(c("-f", "--folder"), type = "character", default = F, help = "folder containing the file generated with feautureCounts *counts_matrix", metavar = ""),
@@ -15,8 +15,8 @@ outputPath = opt$outputPath
 
 ################################################################################
 #DEBUG
-#folder="/home/youssef/CANDIOLO_IRCCS/xpo1/xpo1_rna/RNAseqFastq2Counts/03_feauture_counts/"
-#outputPath="/home/youssef/CANDIOLO_IRCCS/xpo1/xpo1_rna/RNAseqFastq2Counts/03_feauture_counts/xpo1_raw_counts.tsv"
+#folder="/data/yabili/RNAseqFastq2Counts/xpo1_3rd_run_seq/03_feauture_counts"
+#outputPath="/data/yabili/RNAseqFastq2Counts/xpo1_3rd_run_seq/03_feauture_counts/xpo1_3rd_raw_counts.tsv"
 
 
 ##########################STEP1#################################################
@@ -26,6 +26,8 @@ print("Reading Tables...")
 #folder = "~/yussab/filterGenesVCF/03_snpeff"
 setwd(folder)
 temp = list.files(pattern= "/*counts_matrix")
+
+
 #myfiles = lapply(temp, read.csv)
 #library(tools)
 #https://stackoverflow.com/questions/39556188/how-to-get-named-list-when-reading-multiple-csv-files-from-given-folder
