@@ -1,0 +1,74 @@
+digraph "flowchart" {
+p0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p1 [shape=point];
+p0 -> p1 [label="ref_genome"];
+
+p2 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p3 [shape=point];
+p2 -> p3 [label="ref_annotation"];
+
+p4 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromFilePairs"];
+p5 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p4 -> p5;
+
+p5 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+p5 -> p6 [label="fastq_ch"];
+
+p6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+p7 [shape=point];
+p6 -> p7;
+
+p5 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p8 [label="RNASEQ_QC:fastqc"];
+p5 -> p8 [label="fastq_ch"];
+
+p8 [label="RNASEQ_QC:fastqc"];
+p9 [shape=point];
+p8 -> p9;
+
+p10 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromFilePairs"];
+p11 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p10 -> p11;
+
+p11 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p14 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+p11 -> p14 [label="fastq_ch"];
+
+p12 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p13 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p12 -> p13;
+
+p13 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p14 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+p13 -> p14 [label="STARgenomeIndex_ch"];
+
+p14 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+p15 [label="RNASEQ_ALIGN_QUANT:STAR_aligment"];
+p14 -> p15 [label="fastq_genome_ch"];
+
+p15 [label="RNASEQ_ALIGN_QUANT:STAR_aligment"];
+p16 [label="RNASEQ_ALIGN_QUANT:Qualimap"];
+p15 -> p16;
+
+p16 [label="RNASEQ_ALIGN_QUANT:Qualimap"];
+p17 [shape=point];
+p16 -> p17;
+
+p15 [label="RNASEQ_ALIGN_QUANT:STAR_aligment"];
+p18 [label="RNASEQ_ALIGN_QUANT:split_bam"];
+p15 -> p18;
+
+p18 [label="RNASEQ_ALIGN_QUANT:split_bam"];
+p19 [label="RNASEQ_ALIGN_QUANT:FeautureCounts"];
+p18 -> p19;
+
+p19 [label="RNASEQ_ALIGN_QUANT:FeautureCounts"];
+p20 [label="RNASEQ_ALIGN_QUANT:normalize_counts"];
+p19 -> p20;
+
+p20 [label="RNASEQ_ALIGN_QUANT:normalize_counts"];
+p21 [shape=point];
+p20 -> p21;
+
+}
