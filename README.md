@@ -1,4 +1,4 @@
-# RNAseq from fatsq to counts 
+# RNAseq from fastq to counts 
 
 Nextflow script to generate counts starting from fastq files.
 Allow analysis of multiple samples at the same time on different platforms.
