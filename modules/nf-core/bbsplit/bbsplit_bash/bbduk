@@ -1,0 +1,37 @@
+#TOOLDIR=/home/niuyw/software
+#path2java=$TOOLDIR/jre1.8.0_111/bin/java
+
+#ANNODIR=/home/niuyw/RefData
+#contaminants=$ANNODIR/NCBI_contaminants/contaminants_4_bettle_genome.fa
+
+contaminants="/data/yabili/RNAseqFastq2Counts/dsl2/bbsplit/ncbi-genome-download/refseq/vertebrate_mammalian/GCF_018350175.1/GCF_018350175.1_F.catus_Fca126_mat1.0_genomic.fna.gz"
+
+DATADIR="/data/raw_data/yabili/F.Invrea/MERGE"
+WORKDIR=/parastor300/niuyw/Project/beetle_genome_171231/data/second
+#SAMPLE=SELTOTAL
+#SAMPLE="NTCYTOPLASMATIC"
+PPN=16
+path2bbduk=bbduk.sh
+
+
+StringVal="NTNUCLEAR SELCYTOPLASMATIC SELNUCLEAR"
+
+for SAMPLE in $StringVal;do
+
+echo "$path2bbduk ref=${contaminants} \
+            threads=${PPN} \
+            ordered=t \
+            k=31 \
+            in=${DATADIR}/${SAMPLE}.fastq.gz \
+            out=${DATADIR}/bbduk/${SAMPLE}_bbduk.fq \
+            outm=${DATADIR}/bbduk/${SAMPLE}_bbduk.bad.R1.fq"
+
+$path2bbduk -Xmx60g ref=${contaminants} \
+            threads=${PPN} \
+            ordered=t \
+            k=31 \
+            in=${DATADIR}/${SAMPLE}.fastq.gz \
+            out=${DATADIR}/bbduk/${SAMPLE}_bbduk.fq \
+            outm=${DATADIR}/bbduk/${SAMPLE}_bbduk.bad.R1.fq  
+
+done
