@@ -14,7 +14,7 @@ process FeautureCounts {
     """
    featureCounts -T 4 -t gene \
               -o ${sample}_counts  \
-              -a ${ref_annotation} \
+              -a ${params.annotation} \
               -s ${params.strandness_featurecounts} \
               ${ribo_ex}
 

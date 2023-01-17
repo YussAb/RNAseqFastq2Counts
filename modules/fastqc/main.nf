@@ -1,5 +1,5 @@
 process fastqc {     
-     maxForks 4
+     //maxForks 4
  
      publishDir "${params.outdir}/QC/01_fastqc", mode: 'copy', overwrite: false
      
